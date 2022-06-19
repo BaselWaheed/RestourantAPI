@@ -3,5 +3,12 @@ from .models import Contain , Order
 
 
 
-admin.site.register(Contain)
+
+class ContainAdmin(admin.ModelAdmin):
+    list_display = ['id' , 'dish', 'quantity' , 'in_cart']
+
+
+
+
+admin.site.register(Contain,ContainAdmin)
 admin.site.register(Order)

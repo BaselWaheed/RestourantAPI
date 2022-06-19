@@ -1,5 +1,8 @@
 from django.shortcuts import render
 from rest_framework.response import Response
+from Auth.models import Customer, User
+from order.models import Contain, Order
+from product.models import Dish, FavouriteDish
 from .serializer import ReservationSerializer , CommentSerializer
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated   
@@ -7,6 +10,14 @@ from rest_framework.views import APIView
 from .models import Reservation , Comment
 from authentication.views import GuestAuthentication, TokenAuthentication
 import pickle
+from django.db.models import Sum
+
+import os
+from django.conf import settings
+from django.http import HttpResponse
+from django.template.loader import get_template
+from xhtml2pdf import pisa
+from django.contrib.staticfiles import finders
 
 
 class ReservationAPI(APIView):
@@ -53,12 +64,19 @@ def analyzer(comment):
 
 def managecomment(request):
     if request.method == 'GET':
-        model = pickle.load(open('model.pkl', 'rb'))
-        cv = pickle.load(open('cv.pkl', 'rb'))
+        # try:
+            # model = pickle.load(open(r"C:\Users\GIG\Desktop\LOL\project\staff\model.pkl","rb"))
+            # cv = pickle.load(open(r"C:\Users\GIG\Desktop\LOL\project\staff\cv.pkl","rb"))
+        model = pickle.load(open('RF_MODEL.pkl', 'rb'))
+        # model = pickle.load(open('model.pkl', 'rb'))
+        # model = pickle.load(open(r"heroku\kalmecrazy\staff\model.pkl","rb"))
+        cv = pickle.load(open('rf.pkl', 'rb'))
+        # cv = pickle.load(open('cv.pkl', 'rb'))
         comments = Comment.objects.filter(comm_is_managed=False)
         for comment in comments:
             X = cv.transform([comment.comment])
             y_pred = model.predict(X)
+            # result = analyzer(comment.comment)
             if y_pred == 0 :
                 comment.comm_sentiment = False
             else :
@@ -66,7 +84,9 @@ def managecomment(request):
             
             comment.comm_is_managed = True
             comment.save()
-
+    # except : 
+    #     context = {}
+    #     return render(request,'comments.html',context)
     number_comment = Comment.objects.all().count()
     comment_accept = Comment.objects.filter(comm_sentiment=True).count()
     comment_rejected = comment_accept - number_comment
@@ -76,18 +96,22 @@ def managecomment(request):
 
 
 class CommentAPI(APIView):
-    authentication_classes = (TokenAuthentication,GuestAuthentication)
+    authentication_classes = (TokenAuthentication,)
     permission_classes = [IsAuthenticated,]     
     def post(self, request): 
-
+        # result = analyzer(request.data['comment'])
         Serializer = CommentSerializer(data=request.data,context={"request":request})
         data = {"info":[]}
         if Serializer.is_valid():
             Serializer.save()
             data['info'].append(Serializer.data) 
-            return Response({'status': True,'massege':'Your Review is Done' ,'data': data } ,status=status.HTTP_201_CREATED)
+            return Response({'status': True,'massege':'Your Review is Done'} ,status=status.HTTP_201_CREATED)
         else :
-            return Response({'status': False,'data': data}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'status': False,'massege':'Sorry but cannot accept the comment please try again later'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class GetReviewsAPI(APIView):
+    authentication_classes = (GuestAuthentication,)
     def get(self,request,**kwargs):
         comment = Comment.objects.filter(comm_is_shown=True)
         data = {"info":[]}
@@ -104,3 +128,213 @@ class CommentAPI(APIView):
 
 
 
+
+def report(request):
+    user = Customer.objects.all()
+    male = user.filter(is_male=True).count()
+    female = user.filter(is_male=False).count()
+    comment = Comment.objects.all()
+    positive = comment.filter(comm_sentiment=True).count()
+    negative = comment.filter(comm_sentiment=False).count()
+
+
+    orders = Order.objects.all()
+    order = orders.count()
+    online = orders.filter(order_online=True).count()
+    offline = orders.filter(order_online=False).count()
+    dishes = Dish.objects.all()
+    dish = dishes.count()
+    final_price = Order.objects.filter(is_finished = True).aggregate(Total_price=Sum('total_price'))
+    final = 0
+    if final_price['Total_price'] != None :
+        final = int(final_price['Total_price'])
+
+
+
+    # calculate Top meals 
+    data = {}
+    for i in dishes :
+        total_price = Contain.objects.filter(dish=i).aggregate(Total_price=Sum('quantity'))
+        if total_price['Total_price'] != None :
+            data[i.dish_name]= total_price['Total_price']
+    max= {k: v for k, v in sorted(data.items(), key=lambda item: item[1])}
+    result = {}
+    for x in list(reversed(list(max)))[0:5]:
+        result[x]=max[x]
+
+    # calculate Top Favourite Meals 
+    favourite_count ={}
+    for i in dishes :
+        dish_count = FavouriteDish.objects.filter(product=i).count()
+        favourite_count[i] = dish_count
+
+    favourite_max= {k: v for k, v in sorted(favourite_count.items(), key=lambda item: item[1])}
+    dish_favourite = {}
+    for x in list(reversed(list(favourite_max)))[0:5]:
+        dish_favourite[x]=favourite_max[x]
+
+    if request.method== 'POST':
+        date =request.POST.get('date')
+        print(date)
+        user = Customer.objects.all()
+        male = user.filter(is_male=True).count()
+        female = user.filter(is_male=False).count()
+        comment = Comment.objects.all()
+        positive = comment.filter(comm_sentiment=True).count()
+        negative = comment.filter(comm_sentiment=False).count()
+
+
+        orders = Order.objects.filter(order_date=date,is_finished=True)
+        order = orders.count()
+        online = orders.filter(order_online=True,order_date=date).count()
+        
+        offline = orders.filter(order_online=False,order_date=date).count()
+        dishes = Dish.objects.all()
+        dish = dishes.count()
+        final_price = Order.objects.filter(is_finished = True , order_date=date).aggregate(Total_price=Sum('total_price'))
+        final = 0
+        if final_price['Total_price'] != None :
+            final = int(final_price['Total_price'])
+
+
+
+        # calculate Top meals 
+        data = {}
+        for i in dishes :
+            total_price = Contain.objects.filter(dish=i).aggregate(Total_price=Sum('quantity'))
+            if total_price['Total_price'] != None :
+                data[i.dish_name]= total_price['Total_price']
+        max= {k: v for k, v in sorted(data.items(), key=lambda item: item[1])}
+        result = {}
+        for x in list(reversed(list(max)))[0:5]:
+            result[x]=max[x]
+
+        # calculate Top Favourite Meals 
+        favourite_count ={}
+        for i in dishes :
+            dish_count = FavouriteDish.objects.filter(product=i).count()
+            favourite_count[i] = dish_count
+
+        favourite_max= {k: v for k, v in sorted(favourite_count.items(), key=lambda item: item[1])}
+        dish_favourite = {}
+        for x in list(reversed(list(favourite_max)))[0:5]:
+            dish_favourite[x]=favourite_max[x]
+        context = {
+        'users':user.count(),
+        'male':male, 
+        'female':female,
+        'positive':positive,
+        'negative':negative,
+        'order':order,
+        'online':online,
+        'offline':offline,
+        'dish':dish,
+        'total_price':final,
+
+
+        'result':result,
+        'dish_favourite':dish_favourite,
+
+
+
+
+        }
+        return render(request,'report_details.html',context)
+
+
+
+    context = {
+        'users':user.count(),
+        'male':male, 
+        'female':female,
+        'positive':positive,
+        'negative':negative,
+        'order':order,
+        'online':online,
+        'offline':offline,
+        'dish':dish,
+        'total_price':final,
+
+
+        'result':result,
+        'dish_favourite':dish_favourite,
+
+
+
+
+        }
+    return render(request,'report.html',context)
+
+
+
+def render_pdf_view(request):
+    user = Customer.objects.all()
+    male = user.filter(is_male=True).count()
+    female = user.filter(is_male=False).count()
+    comment = Comment.objects.all()
+    positive = comment.filter(comm_sentiment=True).count()
+    negative = comment.filter(comm_sentiment=False).count()
+
+
+    orders = Order.objects.all()
+    order = orders.count()
+    online = orders.filter(order_online=True).count()
+    offline = orders.filter(order_online=False).count()
+    dishes = Dish.objects.all()
+    dish = dishes.count()
+    final_price = Order.objects.filter(is_finished = True).aggregate(Total_price=Sum('total_price'))
+    final = 0
+    if final_price['Total_price'] != None :
+        final = int(final_price['Total_price'])
+
+    dishes = Dish.objects.all()
+    data = {}
+    for i in dishes :
+        total_price = Contain.objects.filter(dish=i).aggregate(Total_price=Sum('quantity'))
+        if total_price['Total_price'] != None :
+            data[i.dish_name]= total_price['Total_price']
+    max= {k: v for k, v in sorted(data.items(), key=lambda item: item[1])}
+    result = {}
+    for x in list(reversed(list(max)))[0:5]:
+        result[x]=max[x]
+  
+
+    
+
+    
+
+    template_path = 'pdf.html'
+    context = {
+    'users':user.count(),
+    'male':male, 
+    'female':female,
+    'positive':positive,
+    'negative':negative,
+    'order':order,
+    'online':online,
+    'offline':offline,
+    'dish':dish,
+    'total_price':final,
+
+    'dishes':dishes,
+    'result':result,
+
+
+
+
+
+    }
+    # Create a Django response object, and specify content_type as pdf
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'filename="report.pdf"'
+    # find the template and render it.
+    template = get_template(template_path)
+    html = template.render(context)
+
+    # create a pdf
+    pisa_status = pisa.CreatePDF(
+        html, dest=response)
+    # if error then show some funny view
+    if pisa_status.err:
+        return HttpResponse('We had some errors <pre>' + html + '</pre>')
+    return response

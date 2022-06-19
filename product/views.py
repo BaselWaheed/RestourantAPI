@@ -1,3 +1,4 @@
+
 from django.shortcuts import get_object_or_404
 from .models import Category, Dish
 from rest_framework.response import Response
@@ -26,6 +27,20 @@ class MeetDishVIEW(APIView):
         data = {'product':[]}
         serializers = DishSerializer(query, many=True ,context={"request":request})
         for product in serializers.data :
+            # try :
+            #     obj = FavouriteDish.objects.filter(user=self.request.user).filter(product_id=product['id'])
+            #     pro = Order.objects.filter(user=self.request.user).filter(order_contain=product['id'])
+            #     if obj  :
+            #         data['is_favourite'] = obj[0].is_favourite
+            #     else :
+            #         data['is_favourite'] = False
+            #     if pro :
+            #         data['in_cart'] = True
+            #     else :
+            #         data['in_cart'] = False
+            # except :
+            #     data['is_favourite'] = False
+            #     data['in_cart'] = False  
             data["product"].append(product)
         return Response({'status':True , 'messege' : 'done' , 'data':data},status=status.HTTP_200_OK)
 
@@ -37,6 +52,20 @@ class DrinksDishVIEW(APIView):
         data = {'product':[]}
         serializers = DishSerializer(query, many=True , context={"request":request})
         for product in serializers.data :
+            # try :
+            #     obj = FavouriteDish.objects.filter(user=self.request.user).filter(product_id=product['id'])
+            #     pro = Order.objects.filter(user=self.request.user).filter(order_contain=product['id'])
+            #     if obj  :
+            #         data['is_favourite'] = obj[0].is_favourite
+            #     else :
+            #         data['is_favourite'] = False
+            #     if pro :
+            #         data['in_cart'] = True
+            #     else :
+            #         data['in_cart'] = False
+            # except :
+            #     data['is_favourite'] = False
+            #     data['in_cart'] = False  
             data["product"].append(product)
         return Response({'status':True , 'messege' : 'done' , 'data':data},status=status.HTTP_200_OK)
 class VegetablesDishVIEW(APIView):
@@ -46,7 +75,21 @@ class VegetablesDishVIEW(APIView):
         query = Dish.objects.filter(dish_category='d8168acd-956f-4a04-87f5-842008e6f35d')
         data = {'product':[]}
         serializers = DishSerializer(query, many=True,context={"request":request})
-        for product in serializers.data : 
+        for product in serializers.data :
+            # try :
+            #     obj = FavouriteDish.objects.filter(user=self.request.user).filter(product_id=product['id'])
+            #     pro = Order.objects.filter(user=self.request.user).filter(order_contain=product['id'])
+            #     if obj  :
+            #         data['is_favourite'] = obj[0].is_favourite
+            #     else :
+            #         data['is_favourite'] = False
+            #     if pro :
+            #         data['in_cart'] = True
+            #     else :
+            #         data['in_cart'] = False
+            # except :
+            #     data['is_favourite'] = False
+            #     data['in_cart'] = False  
             data["product"].append(product)
         return Response({'status':True , 'messege' : 'done' , 'data':data},status=status.HTTP_200_OK)
 
@@ -58,23 +101,31 @@ class ChickenDishVIEW(APIView):
         data = {'product':[]}
         serializers = DishSerializer(query, many=True,context={"request":request})
         for product in serializers.data :
+            # try :
+            #     obj = FavouriteDish.objects.filter(user=self.request.user).filter(product_id=product['id'])
+            #     pro = Order.objects.filter(user=self.request.user).filter(order_contain=product['id'])
+            #     if obj  :
+            #         data['is_favourite'] = obj[0].is_favourite
+            #     else :
+            #         data['is_favourite'] = False
+            #     if pro :
+            #         data['in_cart'] = True
+            #     else :
+            #         data['in_cart'] = False
+            # except :
+            #     data['is_favourite'] = False
+            #     data['in_cart'] = False  
             data["product"].append(product)
         return Response({'status':True , 'messege' : 'done' , 'data':data},status=status.HTTP_200_OK)
 
 class DishDetailsView(APIView):
     authentication_classes = (GuestAuthentication,)
     permission_classes = (AllowAny,)
-    def get(self, request, format=None):
-        data = {}
-        product = get_object_or_404(Dish, pk=request.data.get('id'))
-        serializer = DishSerializer(product,context={"request":request})
-        data.update(serializer.data)
-        return Response({'status': True,'data':data} ,status=status.HTTP_200_OK)
+
     def post(self,request):
         product = get_object_or_404(Dish, pk=request.data.get('id'))
-        serializer = DishSerializer(productcontext={"request":request})
-        data = serializer.data
-        return Response({'status': True,'data':data} ,status=status.HTTP_200_OK)
+        serializer = DishSerializer(product,context={"request":request})
+        return Response({'status': True,'data':serializer.data} ,status=status.HTTP_200_OK)
 
 
 
@@ -91,8 +142,53 @@ class HomeDishView(APIView):
 
 
 
+# class SearchAPI(ListAPIView):
+    # authentication_classes = (TokenAuthentication,)
+#     permission_classes = (IsAuthenticated,)
+#     queryset = Dish.objects.all()
+#     serializer_class = DishSerializer
+#     filter_backends = [DjangoFilterBackend ,filters.SearchFilter]
+#     filterset_fields = ['id','dish_name']
+#     search_fields = ['dish_name']
+#     def list(self, request, *args, **kwargs):
+#         data = {}
+#         queryset = self.filter_queryset(self.get_queryset())
+#         page = self.paginate_queryset(queryset)
+#         if page is not None:
+#             serializer = self.get_serializer(page, many=True)
+#             data['product']=serializer.data
+#             return self.get_paginated_response({'status': True,'data':data})
+#         serializer = self.get_serializer(queryset, many=True)
+#         data['product']=serializer.data
+#         return Response({'status': True,'data':data})
+#     def get(self, request, *args, **kwargs):
+#         return self.list(request, *args, **kwargs)
+
+
+# class SearchAPI(ListAPIView):
+    # authentication_classes = (TokenAuthentication,)
+#     permission_classes = (IsAuthenticated,)
+#     queryset = Dish.objects.all()
+#     serializer_class = DishSerializer
+#     def list(self, request, *args, **kwargs):
+#         data = {}
+#         queryset = self.filter_queryset(self.get_queryset())
+#         page = self.paginate_queryset(queryset)
+#         if page is not None:
+#             serializer = self.get_serializer(page, many=True)
+#             data['product']=serializer.data
+#             return self.get_paginated_response({'status': True,'data':data})
+#         serializer = self.get_serializer(queryset, many=True)
+#         data['product']=serializer.data
+#         return Response({'status': True,'data':data})
+#     def get(self, request, *args, **kwargs):
+#         print(self.request.data)
+#         SearchAPI.queryset = Dish.objects.filter(dish_name__contains=request.data['dish_name'])
+#         return self.list(request, *args, **kwargs)
+
 
 class SearchAPI(ListCreateAPIView):
+    authentication_classes = (GuestAuthentication,)
     permission_classes = (AllowAny,)
     queryset = Dish.objects.all()
     serializer_class = DishSerializer
@@ -132,6 +228,20 @@ class CategoryMobileAndWebViewAPI(APIView):
             categoryfilter = Dish.objects.filter(dish_category=category.id)
             serializer = DishSerializer(categoryfilter,many=True,context={"request":request})
             for product in serializer.data :
+                # try :
+                #     obj = FavouriteDish.objects.filter(user=self.request.user).filter(product_id=product['id'])
+                #     pro = Order.objects.filter(user=self.request.user).filter(order_contain=product['id'])
+                #     if obj  :
+                #         product['is_favourite'] = obj[0].is_favourite
+                #     else :
+                #         product['is_favourite'] = False
+                #     if pro :
+                #         product['in_cart'] = True
+                #     else :
+                #         product['in_cart'] = False
+                # except :
+                #     product['is_favourite'] = False
+                #     product['in_cart'] = False
                 if product['is_active']==True :
                     data['homepage'].append(product)  
                 products['product'].append(product)
@@ -140,4 +250,22 @@ class CategoryMobileAndWebViewAPI(APIView):
             products = {'product':[]} 
         return Response({"status":True , "message":"working", "data": data}, status=status.HTTP_200_OK)     
 
+# class CategoryWebViewAPI(APIView):
+#     permission_classes = (AllowAny,)
+#     def get(self,request):
+#         data = {"category":[]}
+#         products = {'product':[]}
+#         category = Category.objects.all()
+#         category_serializer= CategorySerializer(category,many=True)
+#         for item in category_serializer.data :
+#             category = Category.objects.get(cat_name=item['cat_name'])
+#             categoryfilter = Dish.objects.filter(dish_category=category.id)
+#             serializer = DishSerializer(categoryfilter,many=True)
+#             for product in serializer.data :
+#                 product['is_favourite'] = False
+#                 product['in_cart'] = False
+#                 products['product'].append(product)
+#             data['category'].append(item)
+#             item['products']=product
+#         return Response({"status":True , "message":"working", "data": data}, status=status.HTTP_200_OK) 
 

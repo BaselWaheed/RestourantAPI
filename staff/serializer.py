@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from Auth.models import User
+from Auth.models import Customer, User
 from .models import Comment , Reservation
 
 
@@ -17,20 +17,30 @@ class ReservationSerializer(serializers.ModelSerializer):
 
 class CommentSerializer(serializers.ModelSerializer):
     user = serializers.SerializerMethodField()
+    is_male = serializers.SerializerMethodField()
 
     def get_user(self,obj):
         try :
-            user = User.objects.get(email=obj)
-            user = user.username
+            user= obj.user.username
+            # user = User.objects.get(email=obj)
+            # user = user.username
             
         except :
             user = "No name "
         return user
+    
+    def get_is_male(self,obj):
+        try:
+            user = Customer.objects.get(user=obj.user)
+            return user.is_male
+        except :
+            return None
+
         
 
     class Meta :
         model = Comment
-        fields = ['user','comment']
+        fields = ['user','is_male','comment']
 
     def save(self,**kwargs):
         comment=Comment(

@@ -8,8 +8,16 @@ urlpatterns = [
     path('reservation/', views.ReservationAPI.as_view(),name='reservation'),
 
     
-    path('comment/', views.CommentAPI.as_view(),name='comment'),  
+    path('comment/', views.CommentAPI.as_view(),name='comment'),
 
-    path('managecomment/' ,views.managecomment , name = 'managecomment')
+    path('Reviews/', views.GetReviewsAPI.as_view(),name='Reviews'),    
+
+    path('managecomment/' ,views.managecomment , name = 'managecomment'),
+
+
+
+    path('report/',views.report,name='report'),
+    
+    path('pdf/',views.render_pdf_view,name='pdf'),
 
 ]

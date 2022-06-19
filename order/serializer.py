@@ -5,9 +5,11 @@ from .models import  Order , Contain
 
 class OrderSerializer(serializers.ModelSerializer):
     order_date = serializers.DateTimeField(format="%d, %b %Y - %I:%M %p")
+
+    
     class Meta :
         model = Order
-        fields = ['id','order_date' ,'phone','address',"order_contain",'total_price']
+        fields = ['id','order_date' ,'order_online','phone','address',"order_contain",'total_price']
         depth =1
 
 

@@ -54,7 +54,7 @@ class User(AbstractUser):
 class Customer(models.Model):
     user = models.OneToOneField(User,on_delete=models.CASCADE)
     birthdate= models.DateField(null=True,verbose_name=('birth data'))
-    is_male = models.BooleanField(null=True)
+    is_male = models.BooleanField(null=True , default=True)
     def __str__(self):
         return self.user.email
 

@@ -79,7 +79,6 @@ class CustomerRegistrationSerializer(serializers.ModelSerializer):
                 'status' : False ,
                 'message' :('phone already exist')
                 })   
-        user.is_verify =True 
         password =self.validated_data['password']
         user.set_password(password)
         user.is_customer = True
@@ -94,6 +93,7 @@ class CustomerRegistrationSerializer(serializers.ModelSerializer):
         token = PasswordResetTokenGenerator().make_token(user)
         link = 'http://'+site+'/api/email-verify/'+ uid + '/'+token+ '/'
         body = 'Click Following Link to verify Email\n'+ link+'\n'+'This code to verify Email \t'+str(number.code)
+        print(body)
         data = {
             'subject':'Email verification',
             'body':body,

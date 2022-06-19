@@ -28,6 +28,7 @@ class CustomerRegistrationView(generics.GenericAPIView):  # signup
         user =serializer.save()
         data.update(serializer.data)
         token =Token.objects.create(user=user).key
+        # data['token'] = token 
         return Response({ 'status' : True ,'message' :'account created successfully', "data" :data },status=status.HTTP_200_OK)
 
 class SignupVerify(APIView):
@@ -43,7 +44,8 @@ class SignupVerify(APIView):
             user.save()
             userserializer = UserSerializer(user)
             data.update(userserializer.data)
-
+            # token =Token.objects.create(user=user).key
+            # data['token'] = token 
             try :
                 customer = Customer.objects.get(user=user)
                 customerserializer = CustomerSerializer(customer)
@@ -153,10 +155,11 @@ def email(request, *args, **kwargs):
     uid = kwargs['uid']
     id = smart_str(urlsafe_base64_decode(uid))
     user = User.objects.get(id=id)
+    print(user)
     if user.is_verify == True :
-        return render(request,'error404.html')
+        return render(request,'email_failed.html')
     if not PasswordResetTokenGenerator().check_token(user,token):
-        return render(request,'error404.html')
+        return render(request,'email_failed.html')
     if request.method== 'POST':
         code1 =request.POST.get('otp1')
         code2 =request.POST.get('otp2')

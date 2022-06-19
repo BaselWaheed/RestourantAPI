@@ -21,39 +21,44 @@ class CartPostGetVIEW(APIView):
             old_order = Order.objects.get(user=self.request.user,is_finished = False)
             
             if dish in old_order.order_contain.all():
-                Contain.objects.get(order=old_order,dish=dish).delete()
-                return Response({'status':False , "message":'dish remove from cart'})
+                old_dish = Contain.objects.get(order=old_order,dish=dish)
+                old_dish.quantity +=1
+                old_dish.price = int(old_dish.quantity) * int(old_dish.dish.dish_price)
+                old_dish.save()
+                return Response({'status':True , "message":'dish added to cart '},status=status.HTTP_200_OK)
             else:
                 new_contain = Contain.objects.create(dish=dish,order=old_order, quantity=1 ,price=dish.dish_price, in_cart =True)
                 cartSerializer = ContainSerializer(new_contain)
                 data['cart_item'].append(cartSerializer.data)               
-                return Response({'status':True , 'data' :data})
+                return Response({'status':True , "message":'dish added to cart ','data' :data},status=status.HTTP_200_OK)
         else :
             new_order = Order(user = self.request.user)
             new_order.order_date = timezone.now()
             new_order.is_finished = False
             new_order.save()
-            new_contain = Contain.objects.create(dish=dish,order=new_order,quantity=1,price=dish.dish_price,in_cart =True)
+            new_contain = Contain.objects.create(dish=dish,order=new_order,quantity=1,price=dish.dish_price ,in_cart =True)
             cartSerializer = ContainSerializer(new_contain)
             data['cart_item'].append(cartSerializer.data)
-            return Response({'status':True , 'data' :data})
+            return Response({'status':True , 'data' :data},status=status.HTTP_200_OK)
     def get(self,request):
         data = {'cart_item':[]}
         try:
             order = Order.objects.get(user=self.request.user,is_finished = False)
-            cart = Contain.objects.all().filter(in_cart = True ,order_id=order)
+            cart = Contain.objects.filter(order=order,in_cart=True)
             cartSerializer = ContainSerializer(cart,many=True)
-            total = Contain.objects.filter(order=order).aggregate(total_price=Sum('price'))
-            order.total_price = total['total_price']
+            sub_total = Contain.objects.filter(order=order).aggregate(sub_total=Sum('price'))
             order.save()
-            
             if order :
-                for product in cartSerializer.data:
-                    print(product)  
-                    data['cart_item'].append(product)
-                data.update(total)
-
-                return Response({'status':True , "message":'null', 'data':data},status=status.HTTP_200_OK)
+                if cart :
+                    for product in cartSerializer.data:
+                        data['cart_item'].append(product)
+                    data.update(sub_total)
+                    data['delivery'] = 40
+                    data['total_price']= sub_total['sub_total'] + 40
+                    return Response({'status':True , "message":'null', 'data':data},status=status.HTTP_200_OK)
+                else :
+                    return Response({'status':True , "message":'null', 'data':data},status=status.HTTP_200_OK)
+                    
             else :
                 return Response({'status':True , "message":'null', 'data':data},status=status.HTTP_200_OK)
         except Order.DoesNotExist:
@@ -68,12 +73,14 @@ class CartPostGetVIEW(APIView):
                 old_order = Order.objects.get(user=self.request.user,is_finished=False)
                 cart_item.price = int(quantity) * float(cart_item.dish.dish_price)
                 cart_item.save()
-                total = Contain.objects.filter(order=old_order ,in_cart=True).aggregate(total_price=Sum('price'))
-                old_order.total_price = total['total_price']
+                sub_total = Contain.objects.filter(order=old_order ,in_cart=True).aggregate(sub_total=Sum('price'))
+                old_order.total_price = sub_total['sub_total'] + 40
                 old_order.save()
                 cartSerializer = ContainSerializer(cart_item)
                 data['cart_item'].append(cartSerializer.data)
-                data.update(total)
+                data.update(sub_total)           
+                data['delivery'] = 40
+                data['total_price']= old_order.total_price 
                 return Response({'status': True,'message' :'Updated data Successfuly','data':data} ,status=status.HTTP_202_ACCEPTED)
             else :
                 return Response({'status': False,'message' :'YOU MUST ENTER QUANTITY','data':[]} ,status=status.HTTP_404_NOT_FOUND)
@@ -89,7 +96,7 @@ class CartPostGetVIEW(APIView):
         return Response({'status': True,'message' :'item removed from cart'} ,status=status.HTTP_200_OK)
 
 
-class CheckoutAPI(APIView):
+class CheckoutOnlineAPI(APIView):
     authentication_classes = (TokenAuthentication,)
     def post(self,request,**kwargs):
         data = {"My_order":[]}
@@ -102,8 +109,9 @@ class CheckoutAPI(APIView):
                     order.phone = request.data.get('phone')
                     order.address = request.data.get('address')
                     order.is_finished = True
-                    total = Contain.objects.filter(order=order,in_cart=True).aggregate(total_price=Sum('price'))
-                    order.total_price = total['total_price']
+                    sub_total = Contain.objects.filter(order=order,in_cart=True).aggregate(sub_total=Sum('price'))
+                    order.total_price = sub_total['sub_total'] + 40
+                    order.order_online = True
                     order.save()
                     for i in cart :
                         item = Contain.objects.get(pk=i.id)
@@ -118,6 +126,36 @@ class CheckoutAPI(APIView):
                 return Response({'status': False ,'message': 'order not found','data':data},status=status.HTTP_400_BAD_REQUEST)
         else :
             return Response({'status': False ,'message': 'phone and address are in correct','data':data},status=status.HTTP_400_BAD_REQUEST)
+
+
+
+class CheckoutInRestourant(APIView):
+    authentication_classes = (TokenAuthentication,)
+    def get(self,request,**kwargs):
+        data = {"My_order":[]}
+        try:
+            order= Order.objects.get(user=self.request.user,is_finished=False)
+            cart = Contain.objects.filter(order=order,in_cart=True)
+            if cart:
+                order.is_finished = True
+                total_price = Contain.objects.filter(order=order,in_cart=True).aggregate(total_price=Sum('price'))
+                order.total_price = total_price['total_price']
+                order.order_online = False
+                order.save()
+                for i in cart :
+                    item = Contain.objects.get(pk=i.id)
+                    item.in_cart= False 
+                    item.save()
+                orderserializer = OrderSerializer(order)
+                data['My_order'].append(orderserializer.data)
+                return Response({'status':True,'message':'your order','data':data},status=status.HTTP_200_OK)
+            else :
+                return Response({'status':False , "message":"no item in order",'data':data},status=status.HTTP_200_OK)
+        except Order.DoesNotExist:
+            return Response({'status': False ,'message': 'order not found','data':data},status=status.HTTP_400_BAD_REQUEST)
+
+
+
 
       
 

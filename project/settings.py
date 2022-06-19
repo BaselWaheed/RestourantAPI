@@ -120,13 +120,13 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Africa/Cairo'
 
 USE_I18N = True
 
 USE_L10N = True
 
-USE_TZ = True
+USE_TZ = False
 
 
 # Static files (CSS, JavaScript, Images)
@@ -149,9 +149,11 @@ TIME_INPUT_FORMATS = ('%I:%M %p',)
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT =  587
-EMAIL_HOST_USER =  os.environ.get('EMAIL_USER')
-EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_PASS')
-DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+# EMAIL_HOST_USER =  os.environ.get('EMAIL_USER')
+# EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_PASS')
+# DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+EMAIL_HOST_USER ='kalemecrazy1@gmail.com'
+EMAIL_HOST_PASSWORD='dnaschwsjsevfuwd'
 EMAIL_USE_TLS = True
 EMAIL_USE_SSL = False
 PASSWORD_RESET_TIMEOUT = 500
@@ -204,6 +206,7 @@ JAZZMIN_SETTINGS = {
         {"app": "product"},
         {"app": "staff"},
         {"name": " manage reviews ", "url": "managecomment", "new_window": True},
+        {"name": " report ", "url": "report", "new_window": True},
     ],
     "usermenu_links": [
 
